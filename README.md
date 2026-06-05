@@ -4,10 +4,10 @@ Landing page estática para PIXERIA — el estudio de IA de Admira Xperience.
 
 ## Estructura
 
-- `index.html` — landing completa (hero, pilares, flujo, integraciones, stock, tech, CTAs)
-- `assets/styles.css` — tokens matrix-green terminal + responsive
+- `tools/index.html` — landing completa (hero, pilares, flujo, integraciones, stock, tech, CTAs) → se sirve en /tools
+- `tools/assets/styles.css` — tokens matrix-green terminal + responsive
 - `CNAME` — pixeria.com (para GitHub Pages)
-- `robots.txt`, `sitemap.xml`
+- `robots.txt`, `sitemap.xml` (a nivel raíz del sitio)
 
 ## Desarrollo local
 
@@ -22,9 +22,12 @@ Abre http://localhost:9410
 
 ## Deploy (GitHub Pages)
 
-1. Sube esta carpeta a un repo (o a la raíz del que ya usa GH Pages).
-2. En Settings → Pages → Source: Deploy from a branch (main) / root.
-3. El CNAME apunta a pixeria.com — configura el dominio en tu registrar + DNS para que apunte a las IPs de GH Pages o usa Cloudflare proxy.
+La landing vive bajo `/tools`.
+
+1. La estructura del repo tiene los archivos de la landing dentro de `tools/`.
+2. Publica desde la rama `main` (o `gh-pages`).
+3. Con el CNAME `pixeria.com` activado en el repo, la landing estará en `https://pixeria.com/tools/`.
+4. Configura GitHub Pages en Settings → Pages → Deploy from a branch (main o gh-pages) / root.
 
 ## Futuro
 
