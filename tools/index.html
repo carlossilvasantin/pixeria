@@ -292,5 +292,229 @@
     // Console signature
     console.log('%c[PIXERIA] landing · matrix green · https://pixeria.com/tools', 'color:#2f8a3e;font-size:9px');
   </script>
+
+  <!-- GOD MODE: editable texts like a real text editor -->
+  <script>
+    (function() {
+      let godActive = false;
+      let godUI = null;
+      const STORAGE_KEY = 'pixeria-god-edits-v1';
+
+      const EDITABLE_SELECTORS = [
+        'h1', 'h2', 'h3', 'h4',
+        'p', '.tagline', '.eyebrow', '.kicker',
+        'small', '.muted', '.pill', '.tech-item',
+        '.step p', '.card p', '.card h3',
+        '.section-head p', '.hero-copy'
+      ].join(',');
+
+      function makeEditable(el) {
+        if (el.closest('a') && !el.closest('.card')) return; // don't break main CTAs
+        el.setAttribute('contenteditable', 'true');
+        el.setAttribute('spellcheck', 'true');
+      }
+
+      function removeEditable(el) {
+        el.removeAttribute('contenteditable');
+        el.removeAttribute('spellcheck');
+      }
+
+      function applyEditability(on) {
+        const els = document.querySelectorAll(EDITABLE_SELECTORS);
+        els.forEach(el => {
+          if (on) makeEditable(el);
+          else removeEditable(el);
+        });
+      }
+
+      function createGodUI() {
+        if (godUI) return godUI;
+
+        godUI = document.createElement('div');
+        godUI.className = 'god-ui';
+        godUI.innerHTML = `
+          <div class="god-ui-head">
+            <span>⚡ GOD MODE</span>
+            <span class="god-close" title="Exit (Esc)">✕</span>
+          </div>
+          <div class="god-actions">
+            <button data-action="export">⬇ Export HTML</button>
+            <button data-action="copy">⎘ Copy HTML</button>
+            <button data-action="reset">↺ Reset</button>
+            <button data-action="exit">Exit</button>
+          </div>
+          <div class="god-hint">Edit any text directly • Changes are live • Export to commit</div>
+        `;
+
+        godUI.querySelector('.god-close').addEventListener('click', () => toggleGod(false));
+
+        godUI.addEventListener('click', (e) => {
+          const btn = e.target.closest('button');
+          if (!btn) return;
+          const action = btn.dataset.action;
+          if (action === 'export') exportHTML();
+          if (action === 'copy') copyHTML();
+          if (action === 'reset') resetEdits();
+          if (action === 'exit') toggleGod(false);
+        });
+
+        document.body.appendChild(godUI);
+        return godUI;
+      }
+
+      function showGodUI() {
+        const ui = createGodUI();
+        ui.style.display = 'flex';
+      }
+
+      function hideGodUI() {
+        if (godUI) godUI.style.display = 'none';
+      }
+
+      function exportHTML() {
+        const html = '<!doctype html>\n' + document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'pixeria-tools-index.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function copyHTML() {
+        const html = '<!doctype html>\n' + document.documentElement.outerHTML;
+        navigator.clipboard.writeText(html).then(() => {
+          const btns = document.querySelectorAll('.god-ui button');
+          btns.forEach(b => {
+            if (b.textContent.includes('Copy')) {
+              const old = b.textContent;
+              b.textContent = '✅ Copied!';
+              setTimeout(() => { b.textContent = old; }, 1400);
+            }
+          });
+        }).catch(() => {
+          const ta = document.createElement('textarea');
+          ta.value = html;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          alert('HTML copiado al portapapeles');
+        });
+      }
+
+      function resetEdits() {
+        if (confirm('¿Resetear todos los textos editados?')) {
+          localStorage.removeItem(STORAGE_KEY);
+          location.reload();
+        }
+      }
+
+      function saveEdits() {
+        try {
+          const data = {};
+          const main = document.querySelector('main');
+          if (main) data.main = main.innerHTML;
+
+          const header = document.querySelector('.site-header');
+          if (header) data.header = header.innerHTML;
+
+          const footer = document.querySelector('footer');
+          if (footer) data.footer = footer.innerHTML;
+
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch(e) {}
+      }
+
+      function restoreEdits() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+
+          const data = JSON.parse(raw);
+          if (data.main) {
+            const main = document.querySelector('main');
+            if (main) main.innerHTML = data.main;
+          }
+          if (data.header) {
+            const h = document.querySelector('.site-header');
+            if (h) h.innerHTML = data.header;
+          }
+          if (data.footer) {
+            const f = document.querySelector('footer');
+            if (f) f.innerHTML = data.footer;
+          }
+        } catch(e) {}
+      }
+
+      function toggleGod(force) {
+        godActive = (typeof force === 'boolean') ? force : !godActive;
+        const body = document.body;
+
+        if (godActive) {
+          body.classList.add('god-mode');
+          applyEditability(true);
+
+          restoreEdits();
+          applyEditability(true);
+
+          showGodUI();
+
+          body.addEventListener('input', saveEdits, { capture: true });
+
+          console.log('%c[GOD] Edit mode active. Edit texts freely. Use Export button to get updated file.', 'color:#0f0');
+        } else {
+          body.classList.remove('god-mode');
+          applyEditability(false);
+          hideGodUI();
+          saveEdits();
+        }
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'g') {
+          e.preventDefault();
+          toggleGod();
+        }
+        if (godActive && e.key === 'Escape') {
+          toggleGod(false);
+        }
+      });
+
+      let brandClicks = 0;
+      let brandTimer = null;
+      const brand = document.querySelector('.brand');
+      if (brand) {
+        brand.addEventListener('click', (e) => {
+          brandClicks++;
+          clearTimeout(brandTimer);
+          brandTimer = setTimeout(() => { brandClicks = 0; }, 1200);
+
+          if (brandClicks >= 4) {
+            brandClicks = 0;
+            toggleGod();
+          }
+        });
+      }
+
+      let godBuffer = '';
+      document.addEventListener('keypress', (e) => {
+        if (godActive) return;
+        godBuffer += e.key.toLowerCase();
+        if (godBuffer.length > 4) godBuffer = godBuffer.slice(-4);
+        if (godBuffer === 'god ') {
+          godBuffer = '';
+          toggleGod(true);
+        }
+      });
+
+      console.log('%c[PIXERIA] God mode: Ctrl+Shift+G or click brand 4× fast or type "god " to edit texts live', 'color:#2f8a3e');
+
+      window.togglePixeriaGod = toggleGod;
+    })();
+  </script>
 </body>
 </html>
